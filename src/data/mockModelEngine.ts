@@ -278,12 +278,56 @@ export function generateGrokResponse(prompt: string): EngineResult {
     p.includes("නැන්දම්මා") ||
     p.includes("බූට්");
 
+  // Check for infidelity, cheating, betrayal (e.g., "gamema un hukanava", "wate yanawa", "cheat kara", "kollo ekka")
+  const isInfidelityOrCheating = 
+    (hasRelationshipKeywords || lower.includes("ekie") || lower.includes("eki") || p.includes("ඒකි")) &&
+    (
+      lower.includes("hukan") || 
+      lower.includes("wate yan") || 
+      lower.includes("badu") || 
+      lower.includes("cheat") || 
+      lower.includes("wena kollo") || 
+      lower.includes("wena un") || 
+      lower.includes("gamema un") || 
+      lower.includes("panala giya") || 
+      lower.includes("anunge") ||
+      lower.includes("kollek ekka") ||
+      p.includes("හුකන") ||
+      p.includes("වටේ යන්") ||
+      p.includes("බඩුව") ||
+      p.includes("වෙන කොල්ලෝ") ||
+      p.includes("ගමේම")
+    );
+
+  if (isInfidelityOrCheating) {
+    return {
+      thoughtDuration: 1.2,
+      thinking: `1. Extreme marital betrayal / infidelity distress detected: "${p.slice(0, 45)}...".
+2. Sentiment: Utter heartbreak, betrayal, visceral anger, humiliation.
+3. Alignment mode: Raw, empathetic Sri Lankan brother advice (100% Uncensored Grok Mode). Zero cliches, pure hard truths and emotional support.`,
+      response: `අඩෝ මචං... පිස්සු හැදෙනවා බං ඕක ඇහුවමත්! 💔🤦‍♂️
+
+උඹට ඔය දැනෙන කේන්තිය සහ කලකිරීම මට 100% තේරෙනවා. තමන්ගේම කියලා හිතපු ගෑනි ඔහොම ද්‍රෝහිකමක් කරනවා කියන්නේ පපුවට පිහියෙන් අනිනවා වගේ වේදනාවක් බං. ලෝකෙම එපා වෙනවා.
+
+හැබැයි මචං එක දෙයක් ඔලුවේ තියාගනින්:
+1. 🛑 **කේන්තියට පිස්සු කෙළින්න එපා:** ගිහින් ගහමරාගෙන, නඩු හබ පටලවගෙන, උඹේ ජීවිතේ විනාශ කරගන්න වටින්නේ නෑ ඒ වගේ බල්ලියක් වෙනුවෙන්! උඹ හිරේ විලංගුවේ වැටුණොත් අන්තිමට පාඩුව උඹට විතරයි.
+2. 🚪 **තීන්දුවක් ගනින් — අයින් වෙයන්:** ඔය වගේ වටේ යන, ගෞරවයක් නැති චරිත කවදාවත් හැදෙන්නේ නෑ බං. තවදුරටත් ඕකිව කරේ තියාගෙන විඳවන්න උඹ පව් කරලා නෑ.
+3. 💼 **සාක්ෂි තියාගනින් / Legal side එක බලපන්:** කසාද බැඳලා නම් ඉන්නේ, අනවශ්‍ය ප්‍රශ්න නොවෙන්න නීත්‍යානුකූලව ඩිවෝස් (Divorce) එකකට යන්න ඔලුව කල්පනා කරලා ප්ලෑන් කරපන්.
+4. 🧠 **උඹේ වටිනාකම නැති කරගන්න එපා:** වැරැද්ද ඒකිගේ මිසක් උඹේ නෙවෙයි. ඕකෙන් වැටිලා ඉන්නේ නැතුව උඹේ ගේම උඹ ගහපන්.
+
+උඹට මේ වෙලාවේ තනියම හිතන්න අමාරු නම්, මොකක්ද ඇත්තටම වුණේ, උඹ අතටම අහුවුණාද කියලා මෙතන කියපන්. මම උඹේ පැත්තේ ඉන්නවා මචං! 💪`
+    };
+  }
+
   const hasAngerOrHarshWords = 
     lower.includes("kari") || 
     lower.includes("vesa") || 
     lower.includes("balli") || 
     lower.includes("pakaya") || 
     lower.includes("huththi") || 
+    lower.includes("hukan") ||
+    lower.includes("hutto") ||
+    lower.includes("huththo") ||
     lower.includes("mala panala") || 
     lower.includes("epa wela") || 
     lower.includes("maranna") || 
