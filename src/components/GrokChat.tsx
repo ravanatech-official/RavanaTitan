@@ -151,6 +151,9 @@ export const GrokChat: React.FC<GrokChatProps> = ({
     }
 
     initialAssistantMsg.isStreaming = false;
+    // Auto-collapse thinking accordion once generation finishes, just like Grok 2/3
+    setExpandedThoughts((prev) => ({ ...prev, [assistantMessageId]: false }));
+
     onUpdateThread({
       ...updatedThread,
       messages: [...currentThread.messages, userMsg, { ...initialAssistantMsg }],
