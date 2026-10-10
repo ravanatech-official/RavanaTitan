@@ -7,11 +7,6 @@ on:
       - master
   workflow_dispatch:
 
-permissions:
-  contents: read
-  checks: write
-  pull-requests: write
-
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
@@ -34,22 +29,21 @@ jobs:
           VITE_APP_NAME: "RavanaTitan Foundation Model"
           VITE_MODEL_NAME: "RavanaTitan-MoE-314B"
 
-      # Primary deployment method: Official Google Firebase Action with Service Account
-      - name: Deploy to Firebase Hosting (Service Account)
-        if: "${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}"
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
-          channelId: live
-          projectId: '${{ secrets.FIREBASE_PROJECT_ID || "ravanatitaan" }}'
-
-      # Alternative deployment method: Using FIREBASE_TOKEN (firebase login:ci)
-      - name: Deploy to Firebase Hosting (CLI Token)
-        if: "${{ secrets.FIREBASE_SERVICE_ACCOUNT == '' && secrets.FIREBASE_TOKEN != '' }}"
-        uses: w9jds/firebase-action@master
-        with:
-          args: deploy --only hosting
+      - name: Deploy to Firebase Hosting
+        run: |
+          if [ -n "$FIREBASE_TOKEN" ]; then
+            echo "Deploying to Firebase Hosting via FIREBASE_TOKEN..."
+            npx firebase-tools deploy --only hosting --project ravanatitaan --token "$FIREBASE_TOKEN"
+          elif [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "Deploying to Firebase Hosting via FIREBASE_SERVICE_ACCOUNT..."
+            echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/sa.json
+            export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
+            npx firebase-tools deploy --only hosting --project ravanatitaan
+          else
+            echo "::error::Neither FIREBASE_TOKEN nor FIREBASE_SERVICE_ACCOUNT secret is found in GitHub Secrets."
+            echo "Please add FIREBASE_TOKEN or FIREBASE_SERVICE_ACCOUNT in GitHub Repository Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-          PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID || 'ravanatitaan' }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
