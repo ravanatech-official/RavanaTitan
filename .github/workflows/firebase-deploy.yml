@@ -34,7 +34,7 @@ jobs:
             echo "Deploying to Firebase Hosting via FIREBASE_TOKEN..."
             npx firebase-tools deploy --only hosting --project ravanatitaan --token "$FIREBASE_TOKEN"
           elif [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
-            echo "Deploying to Firebase Hosting via FIREBASE_SERVICE_ACCOUNT..."
+            echo "Deploying to Firebase Hosting via Service Account..."
             echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/sa.json
             export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
             npx firebase-tools deploy --only hosting --project ravanatitaan
@@ -45,4 +45,4 @@ jobs:
           fi
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT || secrets.FIREBASE_SERVICE_ACCOUNT_RAVANATITAAN || secrets.FIREBASE_SERVICE_ACCOUNT_RAVANATITAN }}
