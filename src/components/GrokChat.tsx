@@ -5,7 +5,7 @@ import {
   Layers, Lock, Sparkles, Terminal, Volume2, ArrowUp, Zap
 } from 'lucide-react';
 import { ChatMessage, ChatThread, GenerationConfig, GeneratedToken, GrokNavView } from '../types/model';
-import { generateGrokResponse, simulateTokenMetadata } from '../data/mockModelEngine';
+import { generateGrokResponse, generateGrokResponseAsync, simulateTokenMetadata } from '../data/mockModelEngine';
 import { EXPERT_REGISTRY } from '../data/modelSpecs';
 
 interface GrokChatProps {
@@ -119,8 +119,8 @@ export const GrokChat: React.FC<GrokChatProps> = ({
     setIsGenerating(true);
     setExpandedThoughts((prev) => ({ ...prev, [assistantMessageId]: true }));
 
-    const engineResult = generateGrokResponse(finalPrompt);
-    await new Promise((r) => setTimeout(r, 900));
+    const engineResult = await generateGrokResponseAsync(finalPrompt);
+    await new Promise((r) => setTimeout(r, 600));
 
     initialAssistantMsg.thinkingContent = engineResult.thinking;
     initialAssistantMsg.thoughtDurationSec = engineResult.thoughtDuration;
@@ -560,6 +560,26 @@ function formatMarkdown(text: string, onCopyCode: (code: string) => void): React
         return (
           <React.Fragment key={index}>
             {paragraphs.map((p, pIdx) => {
+              // Markdown image check: ![alt](url)
+              const imgMatch = p.trim().match(/^!\[(.*?)\]\((https?:\/\/.*?)\)$/);
+              if (imgMatch) {
+                return (
+                  <div key={pIdx} className="my-3 rounded-2xl overflow-hidden border border-white/10 bg-black/40 shadow-lg">
+                    <img 
+                      src={imgMatch[2]} 
+                      alt={imgMatch[1]} 
+                      className="w-full max-h-[420px] object-cover rounded-xl"
+                      loading="lazy"
+                    />
+                    {imgMatch[1] && (
+                      <div className="p-2 text-xs text-zinc-400 italic text-center font-mono">
+                        {imgMatch[1]}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
               if (p.startsWith('### ')) {
                 return (
                   <h3 key={pIdx} className="text-base font-bold text-white mt-3 mb-1">

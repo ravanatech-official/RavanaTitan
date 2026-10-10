@@ -15,6 +15,7 @@ interface GrokSidebarProps {
   onSelectThread: (id: string) => void;
   onNewChat: () => void;
   onDeleteThread: (id: string, e: React.MouseEvent) => void;
+  onOpenSettings?: () => void;
 }
 
 export const GrokSidebar: React.FC<GrokSidebarProps> = ({
@@ -27,6 +28,7 @@ export const GrokSidebar: React.FC<GrokSidebarProps> = ({
   onSelectThread,
   onNewChat,
   onDeleteThread,
+  onOpenSettings,
 }) => {
   return (
     <>
@@ -213,7 +215,10 @@ export const GrokSidebar: React.FC<GrokSidebarProps> = ({
           </button>
 
           {/* User Profile Card (Matches exact profile in screenshot) */}
-          <div className="flex items-center justify-between p-2 rounded-xl hover:bg-[#1a1a20] transition cursor-pointer">
+          <div 
+            onClick={onOpenSettings}
+            className="flex items-center justify-between p-2 rounded-xl hover:bg-[#1a1a20] transition cursor-pointer"
+          >
             <div className="flex items-center gap-2.5 overflow-hidden">
               <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center text-[10px] font-bold text-white shrink-0 shadow-sm">
                 SS

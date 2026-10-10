@@ -12,6 +12,7 @@ import { CodeApiExport } from './components/CodeApiExport';
 import { ChatThread, GeneratedToken, GrokNavView } from './types/model';
 import { EXPERT_REGISTRY } from './data/modelSpecs';
 import { X, Layers, ArrowLeft } from 'lucide-react';
+import { loadThreads, saveThread, deleteThreadFromStore } from './firebase';
 
 const INITIAL_THREADS: ChatThread[] = [
   {
@@ -44,6 +45,18 @@ export function App() {
   const [activeThreadId, setActiveThreadId] = useState<string>(INITIAL_THREADS[0].id);
   const [inspectedToken, setInspectedToken] = useState<GeneratedToken | null>(null);
 
+  // Initialize and load saved threads from Firestore / cache
+  useEffect(() => {
+    loadThreads().then((loaded) => {
+      if (loaded && loaded.length > 0) {
+        setThreads(loaded);
+        setActiveThreadId(loaded[0].id);
+      }
+    }).catch(() => {
+      // Graceful offline fallback
+    });
+  }, []);
+
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1024) {
@@ -61,6 +74,7 @@ export function App() {
 
   const handleUpdateThread = (updated: ChatThread) => {
     setThreads((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    saveThread(updated);
   };
 
   const handleNewChat = () => {
@@ -75,10 +89,12 @@ export function App() {
     setThreads((prev) => [newThread, ...prev]);
     setActiveThreadId(newId);
     setActiveView('chat');
+    saveThread(newThread);
   };
 
   const handleDeleteThread = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    deleteThreadFromStore(id);
     if (threads.length <= 1) {
       handleNewChat();
       return;

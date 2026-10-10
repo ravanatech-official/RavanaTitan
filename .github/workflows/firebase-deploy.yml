@@ -27,15 +27,17 @@ jobs:
         env:
           VITE_APP_NAME: "RavanaTitan Foundation Model"
           VITE_MODEL_NAME: "RavanaTitan-MoE-314B"
+          VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Deploy to Firebase Hosting
         run: |
+          SA="${FIREBASE_SERVICE_ACCOUNT:-$FIREBASE_SERVICE_ACCOUNT_RAVANATITAAN}"
           if [ -n "$FIREBASE_TOKEN" ]; then
             echo "Deploying to Firebase Hosting via FIREBASE_TOKEN..."
             npx firebase-tools deploy --only hosting --project ravanatitaan --token "$FIREBASE_TOKEN"
-          elif [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+          elif [ -n "$SA" ]; then
             echo "Deploying to Firebase Hosting via Service Account..."
-            echo "$FIREBASE_SERVICE_ACCOUNT" > /tmp/sa.json
+            echo "$SA" > /tmp/sa.json
             export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json
             npx firebase-tools deploy --only hosting --project ravanatitaan
           else
@@ -45,4 +47,5 @@ jobs:
           fi
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT || secrets.FIREBASE_SERVICE_ACCOUNT_RAVANATITAAN || secrets.FIREBASE_SERVICE_ACCOUNT_RAVANATITAN }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_SERVICE_ACCOUNT_RAVANATITAAN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_RAVANATITAAN }}
