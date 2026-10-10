@@ -1,0 +1,8 @@
+{
+  "name": "RavanaTitan - Foundation Model & AI Intelligence Platform",
+  "description": "Ravana Tech Foundation Model and AI Intelligence Platform: 314B Mixture-of-Experts (MoE) transformer playground, architecture visualizer, tokenization studio, and cluster deployment calculator.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
