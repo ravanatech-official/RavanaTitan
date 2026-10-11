@@ -9,6 +9,7 @@ import { ArchitectureSpecs } from './components/ArchitectureSpecs';
 import { TokenizerStudio } from './components/TokenizerStudio';
 import { HardwareCalculator } from './components/HardwareCalculator';
 import { CodeApiExport } from './components/CodeApiExport';
+import { SettingsModal } from './components/SettingsModal';
 import { ChatThread, GeneratedToken, GrokNavView } from './types/model';
 import { EXPERT_REGISTRY } from './data/modelSpecs';
 import { X, Layers, ArrowLeft } from 'lucide-react';
@@ -44,6 +45,7 @@ export function App() {
   const [threads, setThreads] = useState<ChatThread[]>(INITIAL_THREADS);
   const [activeThreadId, setActiveThreadId] = useState<string>(INITIAL_THREADS[0].id);
   const [inspectedToken, setInspectedToken] = useState<GeneratedToken | null>(null);
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
   // Initialize and load saved threads from Firestore / cache
   useEffect(() => {
@@ -119,6 +121,7 @@ export function App() {
         onSelectThread={setActiveThreadId}
         onNewChat={handleNewChat}
         onDeleteThread={handleDeleteThread}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
       {/* Main Viewport Container */}
@@ -136,6 +139,7 @@ export function App() {
             isSidebarOpen={isSidebarOpen}
             onOpenMoEInspector={(token) => setInspectedToken(token || null)}
             onNavigateView={setActiveView}
+            onOpenSettings={() => setIsSettingsOpen(true)}
           />
         )}
 
@@ -265,6 +269,12 @@ export function App() {
           </div>
         </div>
       )}
+
+      {/* Settings & Hardware Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
   );
 }

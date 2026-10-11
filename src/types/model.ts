@@ -55,6 +55,11 @@ export interface GenerationConfig {
   thinkMode?: boolean;
   deepSearch?: boolean;
   funMode?: boolean;
+  engineMode?: 'hybrid' | 'webgpu' | 'hf_serverless' | 'think314b';
+  webLlmModelId?: string;
+  hfModelId?: string;
+  onProgress?: (progressText: string, pct?: number) => void;
+  onStreamChunk?: (chunk: string) => void;
 }
 
 export interface ChatMessage {

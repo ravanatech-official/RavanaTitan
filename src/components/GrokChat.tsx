@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Plus, Mic, ChevronDown, PanelLeft, Send, Square, Brain, Globe, 
   Copy, Check, ThumbsUp, ThumbsDown, RotateCcw, ChevronRight, 
-  Layers, Lock, Sparkles, Terminal, Volume2, ArrowUp, Zap
+  Layers, Lock, Sparkles, Terminal, Volume2, ArrowUp, Zap, HardDrive, Loader2
 } from 'lucide-react';
 import { ChatMessage, ChatThread, GenerationConfig, GeneratedToken, GrokNavView } from '../types/model';
 import { generateGrokResponse, generateGrokResponseAsync, simulateTokenMetadata } from '../data/mockModelEngine';
 import { EXPERT_REGISTRY } from '../data/modelSpecs';
+import { checkWebGpuSupport } from '../lib/webLlmService';
 
 interface GrokChatProps {
   currentThread: ChatThread;
@@ -16,7 +17,16 @@ interface GrokChatProps {
   isSidebarOpen: boolean;
   onOpenMoEInspector: (token?: GeneratedToken) => void;
   onNavigateView: (view: GrokNavView) => void;
+  onOpenSettings?: () => void;
 }
+
+export const MODEL_OPTIONS = [
+  { id: 'Fast 🎭', label: 'Fast 🎭', tag: 'Hybrid Neural', desc: 'Instant zero-lag response with knowledge search' },
+  { id: 'WebGPU Local ⚡', label: 'WebGPU Local ⚡', tag: 'In-Browser 100% Free', desc: 'Runs directly in your browser on WebGPU, 0 API keys, 0 bills' },
+  { id: 'Hugging Face Free 🌐', label: 'Hugging Face Free 🌐', tag: 'Free Serverless Hub', desc: 'Open-weight foundation cluster (Qwen / Llama / Mistral)' },
+  { id: 'Think 🧠', label: 'Think 🧠', tag: 'Deep Reasoning CoT', desc: '64-layer step-by-step thinking breakdown' },
+  { id: 'Titan 314B 🚀', label: 'Titan 314B 🚀', tag: 'Sparse MoE', desc: '8-expert architecture with top-2 dynamic routing' },
+];
 
 const SLASH_COMMANDS = [
   { cmd: '/moe', desc: 'Inspect 8-Expert MoE Router & 64-layer depth matrix', view: 'moe' },
@@ -37,6 +47,7 @@ export const GrokChat: React.FC<GrokChatProps> = ({
   isSidebarOpen,
   onOpenMoEInspector,
   onNavigateView,
+  onOpenSettings,
 }) => {
   const [input, setInput] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -46,6 +57,12 @@ export const GrokChat: React.FC<GrokChatProps> = ({
   const [showSlashMenu, setShowSlashMenu] = useState<boolean>(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expandedThoughts, setExpandedThoughts] = useState<Record<string, boolean>>({});
+  const [engineStatus, setEngineStatus] = useState<{ text: string; pct?: number } | null>(null);
+  const [webGpuSupported, setWebGpuSupported] = useState<boolean>(false);
+
+  useEffect(() => {
+    checkWebGpuSupport().then((info) => setWebGpuSupported(info.supported));
+  }, []);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -119,8 +136,37 @@ export const GrokChat: React.FC<GrokChatProps> = ({
     setIsGenerating(true);
     setExpandedThoughts((prev) => ({ ...prev, [assistantMessageId]: true }));
 
-    const engineResult = await generateGrokResponseAsync(finalPrompt);
-    await new Promise((r) => setTimeout(r, 600));
+    const engineMode =
+      selectedModel.includes('WebGPU') ? 'webgpu' :
+      selectedModel.includes('Hugging Face') ? 'hf_serverless' :
+      selectedModel.includes('Think') || selectedModel.includes('Reasoning') ? 'think314b' : 'hybrid';
+
+    const savedWebModel = typeof window !== 'undefined' ? localStorage.getItem('WEBLLM_DEFAULT_MODEL') || undefined : undefined;
+    const savedHfModel = typeof window !== 'undefined' ? localStorage.getItem('HF_DEFAULT_MODEL') || undefined : undefined;
+
+    setEngineStatus({ text: `Routing query to ${selectedModel}...` });
+
+    const engineResult = await generateGrokResponseAsync(finalPrompt, {
+      temperature: 0.7,
+      topP: 0.9,
+      maxTokens: 2048,
+      repetitionPenalty: 1.1,
+      seed: 42,
+      engineMode,
+      webLlmModelId: savedWebModel,
+      hfModelId: savedHfModel,
+      onProgress: (statusText, pct) => {
+        setEngineStatus({ text: statusText, pct });
+        initialAssistantMsg.thinkingContent = statusText;
+        onUpdateThread({
+          ...updatedThread,
+          messages: [...currentThread.messages, userMsg, { ...initialAssistantMsg }],
+        });
+      },
+    });
+
+    setEngineStatus(null);
+    await new Promise((r) => setTimeout(r, 300));
 
     initialAssistantMsg.thinkingContent = engineResult.thinking;
     initialAssistantMsg.thoughtDurationSec = engineResult.thoughtDuration;
@@ -210,8 +256,24 @@ export const GrokChat: React.FC<GrokChatProps> = ({
           )}
         </div>
 
-        {/* Top Right Pills (Exact match to screenshot) */}
-        <div className="flex items-center gap-3 text-xs font-medium text-[#a1a1aa]">
+        {/* Top Right Pills (Exact match to screenshot + WebGPU Hub) */}
+        <div className="flex items-center gap-2 sm:gap-3 text-xs font-medium text-[#a1a1aa]">
+          {/* WebGPU / 0-Cost Free Hub Pill */}
+          <button
+            onClick={onOpenSettings}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition cursor-pointer select-none ${
+              webGpuSupported 
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20' 
+                : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white'
+            }`}
+            title="Open WebGPU & 0-Cost Engine Hub"
+          >
+            <Zap className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-[11px] font-mono font-medium">
+              {webGpuSupported ? 'WebGPU Active ⚡' : '0-Cost Free Hub'}
+            </span>
+          </button>
+
           {/* Grok/Titan Bot Pill */}
           <div className="flex items-center gap-2 px-2.5 py-1 rounded-full hover:bg-white/5 transition cursor-pointer">
             <span className="w-2.5 h-2.5 rounded-full bg-[#d4d4d8]" />
@@ -291,25 +353,44 @@ export const GrokChat: React.FC<GrokChatProps> = ({
                     </button>
 
                     {showModelDropdown && (
-                      <div className="absolute right-0 bottom-full mb-2 w-52 bg-[#1c1c22] border border-[#2b2b35] rounded-2xl p-1.5 shadow-2xl z-50 text-xs">
-                        {[
-                          { id: 'Fast 🎭', label: 'Fast (86B Active MoE)' },
-                          { id: 'Reasoning 🧠', label: 'Think (Deep CoT 64L)' },
-                          { id: 'Titan 314B ⚡', label: 'Titan 314B Ultra' },
-                          { id: 'DeepSearch 🌐', label: 'DeepSearch Grounding' },
-                        ].map((m) => (
+                      <div className="absolute right-0 bottom-full mb-2 w-64 bg-[#1c1c22] border border-[#2b2b35] rounded-2xl p-1.5 shadow-2xl z-50 text-xs">
+                        <div className="px-3 py-1.5 text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
+                          Inference Engine
+                        </div>
+                        {MODEL_OPTIONS.map((m) => (
                           <div
                             key={m.id}
                             onClick={() => {
                               setSelectedModel(m.id);
                               setShowModelDropdown(false);
                             }}
-                            className="px-3 py-2 rounded-xl hover:bg-[#282832] text-white cursor-pointer transition font-medium flex items-center justify-between"
+                            className="p-2 rounded-xl hover:bg-[#282832] text-white cursor-pointer transition flex items-start justify-between gap-2"
                           >
-                            <span>{m.label}</span>
-                            {selectedModel === m.id && <Check className="w-3.5 h-3.5 text-sky-400" />}
+                            <div className="space-y-0.5">
+                              <div className="font-semibold text-white flex items-center gap-1.5">
+                                <span>{m.label}</span>
+                                <span className="text-[10px] px-1 rounded bg-white/10 text-zinc-300 font-mono">
+                                  {m.tag}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-zinc-400 leading-snug">
+                                {m.desc}
+                              </p>
+                            </div>
+                            {selectedModel === m.id && <Check className="w-3.5 h-3.5 text-sky-400 shrink-0 mt-0.5" />}
                           </div>
                         ))}
+                        {onOpenSettings && (
+                          <div 
+                            onClick={() => {
+                              setShowModelDropdown(false);
+                              onOpenSettings();
+                            }}
+                            className="mt-1 pt-1 border-t border-[#2a2a35] px-2.5 py-1.5 text-[11px] text-sky-400 hover:text-sky-300 cursor-pointer flex items-center justify-between"
+                          >
+                            <span>Configure WebGPU / HF Models &rarr;</span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -465,7 +546,20 @@ export const GrokChat: React.FC<GrokChatProps> = ({
 
       {/* Floating Bottom Input Bar When In Chat */}
       {hasMessages && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 p-4 pointer-events-none flex justify-center">
+        <div className="fixed bottom-0 left-0 right-0 z-30 p-4 pointer-events-none flex flex-col items-center">
+          {/* Real-time WebGPU / Inference Status Notification */}
+          {engineStatus && (
+            <div className="mb-2 px-3.5 py-1.5 rounded-full bg-[#1c1c22]/95 border border-sky-500/40 text-xs font-mono text-sky-300 flex items-center gap-2 shadow-2xl pointer-events-auto backdrop-blur-md animate-pulse">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-400" />
+              <span>{engineStatus.text}</span>
+              {typeof engineStatus.pct === 'number' && (
+                <span className="font-bold text-white bg-sky-500/20 px-1.5 py-0.5 rounded text-[10px]">
+                  {engineStatus.pct}%
+                </span>
+              )}
+            </div>
+          )}
+
           <div className="w-full max-w-2xl pointer-events-auto bg-[#1c1c22]/95 backdrop-blur-xl border border-[#2b2b35] rounded-3xl p-3 shadow-2xl">
             {/* Slash Command Overlay Menu */}
             {showSlashMenu && (
@@ -506,6 +600,59 @@ export const GrokChat: React.FC<GrokChatProps> = ({
               </button>
 
               <div className="flex items-center gap-2">
+                {/* Model Selector Pill in chat */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowModelDropdown(!showModelDropdown)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium text-[#d4d4d8] hover:text-white hover:bg-[#282832] transition cursor-pointer select-none"
+                  >
+                    <span>{selectedModel}</span>
+                    <ChevronDown className="w-3 h-3 text-[#8e8e98]" />
+                  </button>
+
+                  {showModelDropdown && (
+                    <div className="absolute right-0 bottom-full mb-2 w-64 bg-[#1c1c22] border border-[#2b2b35] rounded-2xl p-1.5 shadow-2xl z-50 text-xs">
+                      <div className="px-3 py-1.5 text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
+                        Inference Engine
+                      </div>
+                      {MODEL_OPTIONS.map((m) => (
+                        <div
+                          key={m.id}
+                          onClick={() => {
+                            setSelectedModel(m.id);
+                            setShowModelDropdown(false);
+                          }}
+                          className="p-2 rounded-xl hover:bg-[#282832] text-white cursor-pointer transition flex items-start justify-between gap-2"
+                        >
+                          <div className="space-y-0.5">
+                            <div className="font-semibold text-white flex items-center gap-1.5">
+                              <span>{m.label}</span>
+                              <span className="text-[10px] px-1 rounded bg-white/10 text-zinc-300 font-mono">
+                                {m.tag}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-zinc-400 leading-snug">
+                              {m.desc}
+                            </p>
+                          </div>
+                          {selectedModel === m.id && <Check className="w-3.5 h-3.5 text-sky-400 shrink-0 mt-0.5" />}
+                        </div>
+                      ))}
+                      {onOpenSettings && (
+                        <div 
+                          onClick={() => {
+                            setShowModelDropdown(false);
+                            onOpenSettings();
+                          }}
+                          className="mt-1 pt-1 border-t border-[#2a2a35] px-2.5 py-1.5 text-[11px] text-sky-400 hover:text-sky-300 cursor-pointer flex items-center justify-between"
+                        >
+                          <span>Configure WebGPU / HF Models &rarr;</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <button
                   onClick={() => handleSendMessage()}
                   disabled={!input.trim() || isGenerating}

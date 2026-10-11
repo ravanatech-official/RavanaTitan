@@ -42,6 +42,7 @@ export const ImagineStudio: React.FC<ImagineStudioProps> = ({ onBack }) => {
   const [prompt, setPrompt] = useState<string>('SpaceX Raptor 3 aerospace rocket engine firing at 350 bar chamber pressure, photorealistic, 8k');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [aspect, setAspect] = useState<string>('16:9');
+  const [visionModel, setVisionModel] = useState<'flux' | 'turbo'>('flux');
   const [gallery, setGallery] = useState<ImageItem[]>(INITIAL_GALLERY);
   const [copiedId, setCopiedId] = useState<string | number | null>(null);
 
@@ -62,7 +63,7 @@ export const ImagineStudio: React.FC<ImagineStudioProps> = ({ onBack }) => {
     }
 
     const seed = Math.floor(Math.random() * 999999);
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(trimmed)}?width=${width}&height=${height}&model=flux&nologo=true&seed=${seed}`;
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(trimmed)}?width=${width}&height=${height}&model=${visionModel}&nologo=true&seed=${seed}`;
 
     // Preload image in memory
     try {
@@ -135,8 +136,27 @@ export const ImagineStudio: React.FC<ImagineStudioProps> = ({ onBack }) => {
             className="w-full bg-transparent border-none outline-none text-sm text-white placeholder-[#71717a] resize-none leading-relaxed px-1"
           />
 
-          <div className="flex items-center justify-between pt-3 border-t border-[#262630] mt-2">
+          {/* Quick Preset Prompt Badges */}
+          <div className="flex flex-wrap gap-1.5 pt-2 pb-1">
+            {[
+              { label: '🚀 SpaceX Raptor 3', text: 'SpaceX Raptor 3 aerospace rocket engine firing at 350 bar chamber pressure, photorealistic, 8k' },
+              { label: '⚡ Cyberpunk Colombo', text: 'Futuristic Cyberpunk Colombo Sri Lanka in year 2099, neon holograms, lotus tower, flying vehicles, 8k cinematic' },
+              { label: '👑 Ravana Titan MoE', text: 'Celestial ancient king Ravana standing on an obsidian mountain beside a glowing 314B neural supercomputer cluster, ethereal cinematic lighting' },
+              { label: '🌌 Quantum Singularity', text: 'A high-precision scientific render of an event horizon quantum black hole tearing interstellar space-time, raytraced 8k' },
+            ].map((chip) => (
+              <button
+                key={chip.label}
+                onClick={() => setPrompt(chip.text)}
+                className="px-2.5 py-1 rounded-full bg-[#121216] hover:bg-[#252530] text-[11px] text-zinc-400 hover:text-white transition border border-[#23232c] cursor-pointer"
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#262630] mt-2">
             <div className="flex items-center gap-2">
+              {/* Aspect Ratio */}
               {['16:9', '1:1', '9:16'].map((ratio) => (
                 <button
                   key={ratio}
@@ -148,6 +168,23 @@ export const ImagineStudio: React.FC<ImagineStudioProps> = ({ onBack }) => {
                   }`}
                 >
                   {ratio}
+                </button>
+              ))}
+
+              <div className="h-4 w-[1px] bg-white/10 mx-1" />
+
+              {/* Vision Engine Selector */}
+              {(['flux', 'turbo'] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setVisionModel(m)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-mono transition cursor-pointer capitalize ${
+                    visionModel === m
+                      ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 font-bold'
+                      : 'bg-white/5 text-[#a1a1aa] hover:text-white'
+                  }`}
+                >
+                  {m === 'flux' ? 'Flux (8K)' : 'Turbo (Fast)'}
                 </button>
               ))}
             </div>

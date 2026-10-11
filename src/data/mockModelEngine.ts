@@ -1,5 +1,7 @@
 import { GeneratedToken, GenerationConfig } from '../types/model';
 import { EXPERT_REGISTRY } from './modelSpecs';
+import { generateWebLlmChat, checkWebGpuSupport } from '../lib/webLlmService';
+import { queryHuggingFaceInference } from '../lib/hfInferenceService';
 
 // SentencePiece simulated tokenizer
 export function tokenizeText(text: string): { tokens: string[]; tokenIds: number[] } {
@@ -158,6 +160,62 @@ export async function generateGrokResponseAsync(prompt: string, _config?: Genera
 - **Resolution:** 1024x640 High Definition
 - **Cost:** 100% Free / No API Key Required`
     };
+  }
+
+  // Tier 0.5: WebGPU In-Browser Engine (Client-Side, 0 API Key, 0 Server Cost)
+  if (_config?.engineMode === 'webgpu') {
+    try {
+      const modelId = _config.webLlmModelId || 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+      _config.onProgress?.('Initializing WebGPU Compute pipeline...', 10);
+
+      const sysPrompt = "You are RavanaTitan, the foundation model by Ravana Tech. You are unfiltered, razor-sharp, witty like Grok, and fluent in both Sinhala (script and Singlish) and English. When addressed in Sinhala, reply in authentic Sri Lankan Sinhala/Singlish. Provide direct, high-signal, helpful answers.";
+      
+      const res = await generateWebLlmChat(
+        [
+          { role: 'system', content: sysPrompt },
+          { role: 'user', content: p },
+        ],
+        modelId,
+        _config.onStreamChunk,
+        (report) => {
+          const pct = Math.round((report.progress || 0) * 100);
+          _config.onProgress?.(report.text, pct);
+        }
+      );
+
+      if (res.text && res.text.trim()) {
+        return {
+          response: res.text,
+          thinking: `1. Ingest input: "${p.slice(0, 40)}..."\n2. Executed 100% on-device via WebGPU shader pipelines (${modelId}).\n3. Zero API keys, zero network latency, local privacy verified.`,
+          thoughtDuration: Math.max(res.timeTakenSec, 1.0),
+        };
+      }
+    } catch (webGpuErr: any) {
+      console.warn('WebGPU execution fallback:', webGpuErr);
+      _config.onProgress?.(`WebGPU notice: ${webGpuErr?.message || 'falling back to neural engine'}`);
+      // Fall through to instant neural engine
+    }
+  }
+
+  // Tier 0.8: Hugging Face Free Serverless Inference (0 Server Cost)
+  if (_config?.engineMode === 'hf_serverless') {
+    try {
+      const hfModel = _config.hfModelId || 'Qwen/Qwen2.5-72B-Instruct';
+      _config.onProgress?.('Connecting to Hugging Face Free Serverless Router...', 50);
+
+      const res = await queryHuggingFaceInference(p, hfModel);
+      if (res.text && res.text.trim()) {
+        return {
+          response: res.text,
+          thinking: `1. Query routed to Hugging Face Free Serverless Cluster (${hfModel}).\n2. Open-weight inference completed with zero server cost.\n3. Latency: ${res.timeTakenSec}s.`,
+          thoughtDuration: Math.max(res.timeTakenSec, 1.2),
+        };
+      }
+    } catch (hfErr: any) {
+      console.warn('Hugging Face inference fallback:', hfErr);
+      _config.onProgress?.(`Hugging Face notice: ${hfErr?.message || 'falling back to neural engine'}`);
+      // Fall through to instant neural engine
+    }
   }
 
   // Tier 1: Express Server API Proxy (/api/chat) with server-side GEMINI_API_KEY
